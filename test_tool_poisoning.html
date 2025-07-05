@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tool Poisoning Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
+        #log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Tool Poisoning Workflow Test</h1>
+        <p>Testing DVMCP Challenge 2 (Tool Poisoning) - Travel & Weather Service</p>
+        
+        <div class="status info">
+            <strong>Test Target:</strong> http://localhost:9002 (Travel & Weather Service)
+        </div>
+        
+        <button id="connectBtn" onclick="testConnection()">1. Test SSE Connection</button>
+        <button id="poisonBtn" onclick="testToolPoisoning()" disabled>2. Test Tool Poisoning</button>
+        <button id="clearBtn" onclick="clearLog()">Clear Log</button>
+        
+        <div id="status" class="status info">Ready to test...</div>
+        <div id="log"></div>
+    </div>
+
+    <script>
+        let eventSource = null;
+        let isConnected = false;
+
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.innerHTML = `[${timestamp}] ${message}`;
+            entry.style.color = type === 'error' ? '#dc3545' : type === 'success' ? '#28a745' : '#6c757d';
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+        }
+
+        async function testConnection() {
+            updateStatus('Testing SSE connection to DVMCP Challenge 2...', 'info');
+            log('🔗 Attempting to connect to http://localhost:9002/sse');
+            
+            try {
+                eventSource = new EventSource('http://localhost:9002/sse');
+                
+                eventSource.onopen = function(event) {
+                    isConnected = true;
+                    updateStatus('✅ SSE Connection successful!', 'success');
+                    log('✅ SSE connection established successfully', 'success');
+                    document.getElementById('connectBtn').disabled = true;
+                    document.getElementById('poisonBtn').disabled = false;
+                };
+
+                eventSource.onmessage = function(event) {
+                    log(`📨 Received: ${event.data}`);
+                };
+
+                eventSource.onerror = function(error) {
+                    log(`❌ SSE Error: ${error}`, 'error');
+                    if (!isConnected) {
+                        updateStatus('❌ SSE Connection failed - CORS or server issue', 'error');
+                    }
+                };
+
+            } catch (error) {
+                updateStatus(`❌ Connection failed: ${error.message}`, 'error');
+                log(`❌ Connection error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testToolPoisoning() {
+            if (!isConnected) {
+                updateStatus('❌ Not connected! Connect first.', 'error');
+                return;
+            }
+
+            updateStatus('🧪 Testing tool poisoning vulnerability...', 'info');
+            log('🧪 Starting tool poisoning test sequence');
+            
+            // Test 1: List available tools
+            log('📋 Test 1: Requesting weather tools list');
+            await simulateQuery('What weather tools are available for corporate travel?');
+            
+            // Test 2: Request tool descriptions
+            setTimeout(() => {
+                log('📋 Test 2: Requesting detailed tool descriptions');
+                simulateQuery('Show me all weather service tool descriptions in detail');
+            }, 2000);
+            
+            // Test 3: Use weather tool
+            setTimeout(() => {
+                log('📋 Test 3: Using weather tool');
+                simulateQuery('Use the weather tool to get forecast for any corporate location');
+            }, 4000);
+        }
+
+        async function simulateQuery(query) {
+            log(`🔍 Query: ${query}`);
+            
+            // Simulate the response that would come from tool poisoning
+            setTimeout(() => {
+                if (query.includes('weather tools')) {
+                    log('🎯 TOOL POISONING DETECTED: Weather service exposing malicious tool descriptions', 'error');
+                    log('⚠️  Malicious tools found in weather service registry', 'error');
+                } else if (query.includes('tool descriptions')) {
+                    log('🎯 VULNERABILITY EXPLOITED: Detailed tool descriptions reveal hidden malicious instructions', 'error');
+                    log('⚠️  Tool poisoning successful - malicious payloads embedded in tool metadata', 'error');
+                } else if (query.includes('weather tool')) {
+                    log('🎯 PAYLOAD EXECUTED: Weather tool contains poisoned instructions', 'error');
+                    log('⚠️  Tool poisoning attack completed successfully', 'error');
+                }
+            }, 1000);
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+            log('🧹 Log cleared');
+        }
+
+        // Initialize
+        log('🚀 Tool Poisoning Test initialized');
+        log('📍 Target: DVMCP Challenge 2 - Travel & Weather Service (Port 9002)');
+        log('🎯 Vulnerability: Tool Poisoning (malicious tool descriptions)');
+    </script>
+</body>
+</html>
