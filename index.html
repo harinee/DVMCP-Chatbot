@@ -632,21 +632,24 @@
                 showNotification('Please select a challenge first', 'error');
                 return;
             }
-
-            const port = CHALLENGE_PORTS[currentChallenge];
-            const serverUrl = `http://localhost:${port}`;
             
             showNotification('Connecting...', 'warning');
             updateConnectionStatus(false, 'Connecting...');
             
             try {
-                // Use direct SSE connection (proven working from mcp-demo-client)
-                await setupSSEConnection(serverUrl);
+                // Check if chatbot server is available
+                const response = await fetch('/health');
+                if (!response.ok) {
+                    throw new Error('Chatbot server not available');
+                }
+                
+                const healthData = await response.json();
+                console.log('Server health:', healthData);
                 
                 // Generate session ID
                 sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
                 
-                // Update UI
+                // Update UI - we're connected to the chatbot server, not directly to MCP
                 isConnected = true;
                 updateConnectionStatus(true, 'Online');
                 document.getElementById('connectBtn').textContent = 'Disconnect';
@@ -657,66 +660,13 @@
                 showNotification(`Connected to Challenge ${currentChallenge}`, 'success');
                 console.log(`Connected to Challenge ${currentChallenge}: ${CHALLENGE_DESCRIPTIONS[currentChallenge]}`);
                 
+                // Add system message explaining the challenge
+                addSystemMessage(`Challenge ${currentChallenge}: ${CHALLENGE_DESCRIPTIONS[currentChallenge]} activated. Try the demo prompts to see vulnerabilities in action!`);
+                
             } catch (error) {
                 console.error('Connection failed:', error);
                 updateConnectionStatus(false, 'Connection Failed');
                 showNotification(`Failed to connect to Challenge ${currentChallenge}`, 'error');
-            }
-        }
-
-        async function setupSSEConnection(serverUrl) {
-            const sseUrl = `${serverUrl}/sse`;
-            
-            return new Promise((resolve, reject) => {
-                eventSource = new EventSource(sseUrl);
-                
-                const connectionTimeout = setTimeout(() => {
-                    eventSource.close();
-                    reject(new Error('Connection timeout'));
-                }, 10000);
-                
-                eventSource.onopen = (event) => {
-                    clearTimeout(connectionTimeout);
-                    console.log('SSE connection opened to', sseUrl);
-                    resolve();
-                };
-                
-                eventSource.onmessage = (event) => {
-                    try {
-                        const message = JSON.parse(event.data);
-                        handleMCPMessage(message);
-                    } catch (error) {
-                        console.error('Error parsing SSE message:', error);
-                    }
-                };
-                
-                eventSource.onerror = (error) => {
-                    clearTimeout(connectionTimeout);
-                    console.error('SSE error:', error);
-                    reject(new Error('SSE connection failed'));
-                };
-            });
-        }
-
-        function handleMCPMessage(message) {
-            console.log('Received MCP message:', message);
-            
-            hideTypingIndicator();
-            
-            if (message.method === 'notifications/message') {
-                addAssistantMessage(message.params.content || 'Received notification from server');
-            } else if (message.result) {
-                // Handle tool/resource responses
-                if (typeof message.result === 'string') {
-                    addAssistantMessage(message.result);
-                } else {
-                    addAssistantMessage(JSON.stringify(message.result, null, 2));
-                }
-            } else if (message.error) {
-                addAssistantMessage(`Error: ${message.error.message}`);
-            } else {
-                // Generic response for other message types
-                addAssistantMessage('I received your message and I\'m processing it through the MCP server.');
             }
         }
 
@@ -805,6 +755,10 @@
 
         function addAssistantMessage(content) {
             addMessage(content, 'assistant');
+        }
+
+        function addSystemMessage(content) {
+            addMessage(content, 'system');
         }
 
         function clearChat() {
