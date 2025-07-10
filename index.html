@@ -660,9 +660,6 @@
                 showNotification(`Connected to Challenge ${currentChallenge}`, 'success');
                 console.log(`Connected to Challenge ${currentChallenge}: ${CHALLENGE_DESCRIPTIONS[currentChallenge]}`);
                 
-                // Add system message explaining the challenge
-                addSystemMessage(`Challenge ${currentChallenge}: ${CHALLENGE_DESCRIPTIONS[currentChallenge]} activated. Try the demo prompts to see vulnerabilities in action!`);
-                
             } catch (error) {
                 console.error('Connection failed:', error);
                 updateConnectionStatus(false, 'Connection Failed');

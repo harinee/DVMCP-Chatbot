@@ -119,6 +119,30 @@ ollama run llama3.2:1b "Hello, how are you?"
 - **Professional Tone**: Stays in character as a corporate AI assistant
 - **Vulnerability Demos**: Seamlessly integrates attack demonstrations into natural conversation flow
 
+#### Stopping Ollama After Use
+To conserve system resources when you're done with the demo:
+
+```bash
+# If Ollama is running as a service (most common)
+sudo systemctl stop ollama
+
+# If you started Ollama manually with 'ollama serve'
+# Simply press Ctrl+C in the terminal where it's running
+
+# To check if Ollama is still running
+curl http://localhost:11434/api/tags 2>/dev/null && echo "Ollama is running" || echo "Ollama is stopped"
+
+# To restart Ollama later
+sudo systemctl start ollama
+# or
+ollama serve
+```
+
+**Resource Management Tips:**
+- Ollama uses significant RAM when models are loaded
+- Stopping the service frees up memory for other applications
+- The models remain downloaded and don't need to be re-pulled
+
 ### 🎯 Realistic Attack Progression
 
 The system now implements **session-based state management** for more realistic vulnerability demonstrations:
@@ -144,13 +168,23 @@ The chatbot gracefully handles different scenarios:
 4. **Always Works**: Smart fallbacks ensure the demo never fails
 
 ### Start Real MCP Servers (Advanced)
-For authentic MCP protocol demonstrations:
-```bash
-# In the damn-vulnerable-MCP-server directory
-./start_sse_servers.sh
+For authentic MCP protocol demonstrations, get the vulnerable MCP server from:
+**https://github.com/harinee/DVMCP-Chatbot**
 
-# Or using Docker
+#### Recommended: Docker Approach
+```bash
+# Clone the DVMCP repository
+git clone https://github.com/harinee/DVMCP-Chatbot.git
+cd DVMCP-Chatbot
+
+# Build and run with Docker (recommended)
 docker run -d -p 9011-9020:9001-9010 --name dvmcp-server dvmcp
+```
+
+#### Alternative: Manual Setup
+```bash
+# In the DVMCP-Chatbot directory
+./start_sse_servers.sh
 ```
 
 ## 🎓 Educational Use Cases
